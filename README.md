@@ -2,7 +2,7 @@
 Finds server IP which is behind the cloud in a given IP-Range
 
 ## Usage
-```bash
+```js
 usage: FindIP [-h] -r IP_RANGE [-H Host_HEADER] (-g | -p) [-d PAYLOAD] [-u REQUEST_PATH] -f FIND [-s STATUS] [-P PORTS] [-t THREADS]
 
 Finds Server IP in a Given IP-Range using GET|POST requests on a given PATH
@@ -29,7 +29,8 @@ optional arguments:
 ```
 
 ### Example
+```bash
 python main.py -r 192.168.1.0/24 -H "hostHeader.com" -s 200 -f "uniq string to search" -u /sample/file -g
 python main.py -r 192.168.1.0/24 -H "hostHeader.com" -s 200 -f "uniq string to search" -u /sample/file -p -d "x=1&y=2"
 python main.py -r 192.168.1.0/24 -H "hostHeader.com" -s 200 -f "uniq string to search" -u /sample/file -p -d '{"x":1,"y":2}'
-
+```
