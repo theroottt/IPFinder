@@ -14,6 +14,8 @@ ports = [
 ]
 
 proxy = {
+    "https" : "127.0.0.1:8080",
+    "http" : "127.0.0.1:8080"
 }
 
 requestHeaders = {
@@ -125,7 +127,10 @@ def main():
 
     string2searchInres = args.find
     resStatus = args.status
-    ports = ports.append(args.ports)
+
+    if args.ports != []:
+        global ports
+        ports = ports.append(args.ports)
 
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=int(args.threads)) as executor:
@@ -143,7 +148,7 @@ def main():
                         futures.append(executor.submit(post, ip, portNumber, filepath, args.data, string2searchInres, resStatus, https))
 
                 progress = (i / IPrangeCount) * 100
-                print(f"[.] CREATING ::: TotalIPs : {IPrangeCount} ::: Current : {ip} ::: Progress : {progress:.2f}%",end="\r")
+                print(f"[.] CREATING ::: TotalIPs : {IPrangeCount} ::: Current : {ip} ::: Progress : {progress:.2f}%\t",end="\r")
 
             print(f"\n[.] STARTING ::: TotalIPs : {IPrangeCount} :::")
 
@@ -152,7 +157,7 @@ def main():
                 returnValue , ip = future.result()
                 donefutures += 1
                 progress = (donefutures / futuresCount) * 100
-                print(f"[.] WAITING ::: Done : {donefutures} ::: Current : {ip} ::: Progress : {progress:.2f}%",end="\r")
+                print(f"[.] WAITING ::: Done : {donefutures} ::: Current : {ip} ::: Progress : {progress:.2f}%\t",end="\r")
                 if returnValue != 404:
                     print("\n")
                     print(ip)
