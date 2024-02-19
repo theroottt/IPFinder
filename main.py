@@ -7,7 +7,6 @@ from requests.packages.urllib3.util.retry import Retry
 retry = Retry(total=2, backoff_factor=0.1)
 adapter = HTTPAdapter(max_retries=retry)
 
-
 #  [ { port : https } , ... ]
 ports = [
         {80 : False},
@@ -51,12 +50,12 @@ def get(ip,port,filepath,string2searchInres,resStatus, https=False):
         # print(url)
         res = session.get(url,verify=False,timeout=5,headers=requestHeaders, proxies=proxy)    
         if (res.status_code == resStatus) and  (string2searchInres in res.text):
-            return "[+] MatchFoud %s " % url
+            return 200 , "[+] MatchFoud %s " % url
 
     except Exception as e:
-        # print(e)
-        if "ConnectTimeoutError" in str(e):
-            return
+        pass
+
+    return 404 , ip
 
 def post(ip,port,filepath,data,string2searchInres,resStatus, https=False):
 
@@ -79,12 +78,12 @@ def post(ip,port,filepath,data,string2searchInres,resStatus, https=False):
     try:
         res = session.post(url, data=data, verify=False, timeout=5, headers=requestHeaders, proxies=proxy)    
         if (res.status_code == resStatus) and  (string2searchInres in res.text):
-            print("[+] MatchFoud %s " % url)
-            sys.exit(0)
+            return 200 , "[+] MatchFoud %s " % url
+
     except Exception as e:
-        # print(e)
-        if "ConnectTimeoutError" in str(e):
-            return
+        pass
+
+    return 404 , ip
 
 
 
@@ -117,7 +116,7 @@ def main():
         parser.print_help()
         print(f"[x] invalid IP-Range :: \n{e}")
         sys.exit(2)
-        
+
     hostHeader = args.host
     if hostHeader.strip() != "":
         requestHeaders["Host"] = hostHeader.strip()
@@ -133,8 +132,10 @@ def main():
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=int(args.threads)) as executor:
             futures = []
-            for ip in IPrange:
-                ip = str(ip)
+            donefutures = 0
+            IPrangeCount = len(list(IPrange))
+            for i in range(IPrangeCount):
+                ip = str(IPrange[i])
                 for port in ports:
                     portNumber = list(port.keys())[0]
                     https = list(port.values())[0]
@@ -143,14 +144,25 @@ def main():
                     else:
                         futures.append(executor.submit(post, ip, portNumber, filepath, args.data, string2searchInres, resStatus, https))
 
-                for future in futures:
-                    if future.result() is not None:
-                        print (future.result())
-                        executor.shutdown(wait=False)
-                        sys.exit(0)
+                progress = (i / IPrangeCount) * 100
+                print(f"[.] CREATING ::: TotalIPs : {IPrangeCount} ::: Current : {ip} ::: Progress : {progress:.2f}%",end="\r")
 
+            print(f"\n[.] STARTING ::: TotalIPs : {IPrangeCount} :::")
+
+            futuresCount = len(futures)
+            for future in futures:
+                returnValue , ip = future.result()
+                donefutures += 1
+                progress = (donefutures / futuresCount) * 100
+                print(f"[.] WAITING ::: Done : {donefutures} ::: Current : {ip} ::: Progress : {progress:.2f}%",end="\r")
+                if returnValue != 404:
+                    print("\n")
+                    print(ip)
+                    executor.shutdown(wait=False)
+                    sys.exit(0)
+        print("")
     except KeyboardInterrupt:
-        print("Intrupted exiting ...")
+        print("\nIntrupted exiting ...")
         executor.shutdown(wait=False)
         sys.exit(3)
 
