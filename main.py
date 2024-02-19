@@ -102,7 +102,7 @@ def main():
     parser.add_argument("-u", "--uri",metavar="REQUEST_PATH",default="/",help="where to send the request (e.g., /static/somefileThatexists) (default=/)")
     parser.add_argument("-f", "--find",metavar="FIND",required=True,help="Search the response for the given string to match found items")
     parser.add_argument("-s", "--status",metavar="STATUS",help="Expected response Status code (default=200)",default=200)
-    parser.add_argument("-P", "--ports",help="Configure wich ports to send a request to with below struct\n[ { port : https } , ... ]\nDefault value is\n[{80 : False},{443 : True}]",default=200)
+    parser.add_argument("-P", "--ports",help="Configure wich ports to send a request to with below struct\n[ { port : https } , ... ]\nDefault value is\n[{80 : False},{443 : True}]",default=[])
     parser.add_argument("-t", "--threads",help="Threads (default=40)",default=40)
 
     args = parser.parse_args()
@@ -125,7 +125,7 @@ def main():
 
     string2searchInres = args.find
     resStatus = args.status
-
+    ports = ports.append(args.ports)
 
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=int(args.threads)) as executor:
