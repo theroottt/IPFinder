@@ -1,10 +1,11 @@
-import requests, ipaddress, sys, urllib3, argparse, json
+import requests, ipaddress, sys, urllib3, argparse, json, base64
+from datetime import datetime
 import concurrent.futures
 urllib3.disable_warnings()
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-retry = Retry(total=2, backoff_factor=0.1)
+retry = Retry(total=3, backoff_factor=0.3)
 adapter = HTTPAdapter(max_retries=retry)
 
 #  [ { port : https } , ... ]
@@ -13,15 +14,20 @@ ports = [
         {443 : True}
 ]
 
-proxy = {
-    "https" : "127.0.0.1:8080",
-    "http" : "127.0.0.1:8080"
-}
+proxy = {}
+# proxy = {
+#     "https" : "127.0.0.1:8080",
+#     "http" : "127.0.0.1:8080"
+# }
+
 
 requestHeaders = {
     "User-Agent" : "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
 }
 
+logfile = open("logs.txt","a")
+def log(msg):
+    logfile.write( str(datetime.now()) +" # "+ msg + "\n")
 
 def determine_content_type(request_body):
     try:
@@ -48,14 +54,18 @@ def get(ip,port,filepath,string2searchInres,resStatus, https=False):
 
     try:
         # print(url)
-        res = session.get(url,verify=False,timeout=5,headers=requestHeaders, proxies=proxy)    
+        res = session.get(url,verify=False,timeout=7,headers=requestHeaders, proxies=proxy)    
         if (res.status_code == resStatus) and  (string2searchInres in res.text):
+            log( "FOUND " + string2searchInres + ": URL="+url +" # ResponseText(b64)=" + str(base64.b64encode(res.text.encode("utf-8"))))
             return 200 , "[+] MatchFoud %s " % url
 
     except Exception as e:
-        pass
+        e = str(e)
+        if "Max retries exceeded with url" not in e:
+            log( " GET " + url + " : " + e)
 
     return 404 , ip
+
 
 def post(ip,port,filepath,data,string2searchInres,resStatus, https=False):
 
@@ -76,12 +86,16 @@ def post(ip,port,filepath,data,string2searchInres,resStatus, https=False):
         url = f"http://{ip}:{str(port)}{filepath}"
 
     try:
-        res = session.post(url, data=data, verify=False, timeout=5, headers=requestHeaders, proxies=proxy)    
+        res = session.post(url, data=data, verify=False, timeout=7, headers=requestHeaders, proxies=proxy)    
         if (res.status_code == resStatus) and  (string2searchInres in res.text):
+            log( "FOUND " + string2searchInres + ": URL="+url+" # PostBody=" + str(data) +" # ResponseText(b64)=" + str(base64.b64encode(res.text)))
             return 200 , "[+] MatchFoud %s " % url
 
     except Exception as e:
-        pass
+        e = str(e)
+        if "Max retries exceeded with url" not in e:
+            log( "POST " + url + " : " + data + " : " + e)
+
 
     return 404 , ip
 
@@ -161,9 +175,7 @@ def main():
                 if returnValue != 404:
                     print("\n")
                     print(ip)
-                    executor.shutdown(wait=False)
-                    sys.exit(0)
-        print("")
+
     except KeyboardInterrupt:
         print("\nIntrupted exiting ...")
         executor.shutdown(wait=False)
