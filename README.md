@@ -1,5 +1,5 @@
 # Uncovering Real IP Addresses Behind WAFs and Cloud Services
-Finds server IP which is behind the cloud in a given IP-Range 🚀
+Finds server IP which is behind the WAF or cloud services in a given IP-Range 🚀
 
 ## Futures ♨️
 * Supports GET or POST requests on the given path
