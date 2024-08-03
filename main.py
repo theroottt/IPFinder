@@ -41,7 +41,7 @@ def determine_content_type(request_body):
     # If neither JSON nor URL-encoded, return None
     return None
 
-def get(ip,port,filepath,string2searchInres,resStatus, https=False):
+def get(ip,port,filepath,string2searchInres,resStatus, https=False, verify=False):
 
     session = requests.Session()
     session.mount('http://', adapter)
@@ -54,10 +54,18 @@ def get(ip,port,filepath,string2searchInres,resStatus, https=False):
 
     try:
         # print(url)
-        res = session.get(url,verify=False,timeout=7,headers=requestHeaders, proxies=proxy)    
-        if (res.status_code == resStatus) and  (string2searchInres in res.text):
-            log( "FOUND " + string2searchInres + ": URL="+url +" # ResponseText(b64)=" + str(base64.b64encode(res.text.encode("utf-8"))))
-            return 200 , "[+] MatchFoud %s " % url
+        res = session.get(url,verify=False,timeout=7,headers=requestHeaders, proxies=proxy)
+        responseCode = res.status_code
+        if (responseCode == resStatus) and  (string2searchInres in res.text):
+            if not verify:
+                log( "FOUND " + string2searchInres + ": URL="+url +" # ResponseText(b64)=" + str(base64.b64encode(res.text.encode("utf-8"))))
+                return 200 , "[+] MatchFoud %s " % url
+            else:
+                requestHeaders["Host"] = "somewhererandom.com"
+                res = session.get(url,verify=False,timeout=7,headers=requestHeaders, proxies=proxy, allow_redirects=False)
+                if "Location" in res.headers.keys() :
+                    return 404 , ip    
+
 
     except Exception as e:
         e = str(e)
@@ -89,7 +97,7 @@ def post(ip,port,filepath,data,string2searchInres,resStatus, https=False):
         res = session.post(url, data=data, verify=False, timeout=7, headers=requestHeaders, proxies=proxy)    
         if (res.status_code == resStatus) and  (string2searchInres in res.text):
             log( "FOUND " + string2searchInres + ": URL="+url+" # PostBody=" + str(data) +" # ResponseText(b64)=" + str(base64.b64encode(res.text)))
-            return 200 , "[+] MatchFoud %s " % url
+            return 200 , "\n[+] MatchFoud %s " % url
 
     except Exception as e:
         e = str(e)
@@ -117,7 +125,9 @@ def main():
     parser.add_argument("-d", "--data",default="",metavar="PAYLOAD",help="Payload to send in POST requests")
     parser.add_argument("-u", "--uri",metavar="REQUEST_PATH",default="/",help="where to send the request (e.g., /static/somefileThatexists) (default=/)")
     parser.add_argument("-f", "--find",metavar="FIND",required=True,help="Search the response for the given string to match found items")
+    parser.add_argument("-o", "--out",metavar="OUTPUT",required=True,help="Save found items in a file")
     parser.add_argument("-s", "--status",metavar="STATUS",help="Expected response Status code (default=200)",default=200)
+    parser.add_argument("-V", "--verify",metavar="VERIFY",help="Verify found items based on invalid host header redirection (default=False)",default=False)
     parser.add_argument("-P", "--ports",help="Configure wich ports to send a request to with below struct\n[ { port : https } , ... ]\nDefault value is\n[{80 : False},{443 : True}]",default=[])
     parser.add_argument("-t", "--threads",help="Threads (default=40)",default=40)
 
@@ -157,9 +167,9 @@ def main():
                     portNumber = list(port.keys())[0]
                     https = list(port.values())[0]
                     if args.get:
-                        futures.append(executor.submit(get, ip, portNumber, filepath, string2searchInres, resStatus, https))
+                        futures.append(executor.submit(get, ip, portNumber, filepath, string2searchInres, resStatus, https, args.verify))
                     else:
-                        futures.append(executor.submit(post, ip, portNumber, filepath, args.data, string2searchInres, resStatus, https))
+                        futures.append(executor.submit(post, ip, portNumber, filepath, args.data, string2searchInres, resStatus, https, args.verify))
 
                 progress = (i / IPrangeCount) * 100
                 print(f"[.] CREATING ::: TotalIPs : {IPrangeCount} ::: Current : {ip} ::: Progress : {progress:.2f}%\t",end="\r")
@@ -175,6 +185,10 @@ def main():
                 if returnValue != 404:
                     print("\n")
                     print(ip)
+                    print("\n")
+                    if args.out :
+                        with open(args.out , "a") as outfile:
+                            outfile.write(ip + "\n")
 
     except KeyboardInterrupt:
         print("\nIntrupted exiting ...")
