@@ -17,7 +17,7 @@ usage: FindIP [-h] -r IP_RANGE [-H Host_HEADER] (-g | -p) [-d PAYLOAD] [-u REQUE
 
 Finds Server IP in a Given IP-Range using GET|POST requests on a given PATH
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -r IP_RANGE, --ip-range IP_RANGE
                         Specify the IP range of hosts to target (e.g., 192.168.1.0/24)
@@ -30,10 +30,14 @@ optional arguments:
   -u REQUEST_PATH, --uri REQUEST_PATH
                         where to send the request (e.g., /static/somefileThatexists) (default=/)
   -f FIND, --find FIND  Search the response for the given string to match found items
+  -o OUTPUT, --out OUTPUT
+                        Save found items in a file
   -s STATUS, --status STATUS
                         Expected response Status code (default=200)
+  -V, --verify          Verify found items based on invalid host header redirection (default=False)
   -P PORTS, --ports PORTS
-                        Configure wich ports to send a request to with below struct [ { port : https } , ... ] Default value is [{80 : False},{443 : True}]
+                        Configure wich ports to send a request to with below struct [ { port : https } , ... ] Default
+                        value is [{80 : False},{443 : True}]
   -t THREADS, --threads THREADS
                         Threads (default=40)
 ```
