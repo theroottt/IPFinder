@@ -75,7 +75,7 @@ def get(ip,port,filepath,string2searchInres,resStatus, https=False, verify=False
     return 404 , ip
 
 
-def post(ip,port,filepath,data,string2searchInres,resStatus, https=False):
+def post(ip,port,filepath,data,string2searchInres,resStatus, https=False, verify=False):
 
     ContentTypeHeader = determine_content_type(data)
     if ContentTypeHeader is None:
@@ -96,8 +96,16 @@ def post(ip,port,filepath,data,string2searchInres,resStatus, https=False):
     try:
         res = session.post(url, data=data, verify=False, timeout=7, headers=requestHeaders, proxies=proxy)    
         if (res.status_code == resStatus) and  (string2searchInres in res.text):
-            log( "FOUND " + string2searchInres + ": URL="+url+" # PostBody=" + str(data) +" # ResponseText(b64)=" + str(base64.b64encode(res.text)))
-            return 200 , "\n[+] MatchFoud %s " % url
+            if not verify:
+                log( "FOUND " + string2searchInres + ": URL="+url+" # PostBody=" + str(data) +" # ResponseText(b64)=" + str(base64.b64encode(res.text)))
+                return 200 , "\n[+] MatchFoud %s " % url
+            else:
+                requestHeaders["Host"] = "somewhererandom.com"
+                res = session.post(url, data=data, verify=False, timeout=7, headers=requestHeaders, proxies=proxy, allow_redirects=False)
+                if "Location" in res.headers.keys() :
+                    return 404 , ip    
+
+
 
     except Exception as e:
         e = str(e)
@@ -188,7 +196,7 @@ def main():
                     print("\n")
                     if args.out :
                         with open(args.out , "a") as outfile:
-                            outfile.write(ip + "\n")
+                            outfile.write( ip.strip().split(" ")[-1] + "\n")
 
     except KeyboardInterrupt:
         print("\nIntrupted exiting ...")
